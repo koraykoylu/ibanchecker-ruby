@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 2.7 is the floor declared in the gemspec. It is pinned to 24.04
+          # because ruby-builder publishes no 2.7 build for newer images, so
+          # ubuntu-latest moving on would break this job rather than the gem.
+          - { ruby: "2.7", os: ubuntu-24.04 }
+          - { ruby: "3.2", os: ubuntu-latest }
+          - { ruby: "4.0", os: ubuntu-latest }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rake test
+      - run: gem build ibanchecker.gemspec

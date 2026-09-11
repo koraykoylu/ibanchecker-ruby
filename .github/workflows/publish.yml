@@ -1,0 +1,28 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write # rake release pushes the version tag
+      id-token: write # required for RubyGems Trusted Publishing (OIDC), no token stored
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby
+          bundler-cache: true
+      # Runs `bundle exec rake release`: builds the gem, tags the version if the
+      # tag is not already there, and pushes to RubyGems over OIDC.
+      - uses: rubygems/release-gem@v1
