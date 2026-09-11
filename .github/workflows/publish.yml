@@ -16,7 +16,7 @@ jobs:
       contents: write # rake release pushes the version tag
       id-token: write # required for RubyGems Trusted Publishing (OIDC), no token stored
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: ruby/setup-ruby@v1
