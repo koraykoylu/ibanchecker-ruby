@@ -9,11 +9,20 @@ module IbanChecker
   # extract IBANs from free text, look up country format specifications and
   # resolve SWIFT/BIC codes.
   #
-  # validate, validate_bulk and extract need an API key; without one the API
-  # answers 401 and AuthenticationError is raised. The free key from
-  # https://ibanchecker.cash/api-docs covers 100 requests a month.
-  # country_format and lookup_bic work without a key, limited to 100 requests
-  # an hour per IP.
+  # Every call except country_format needs an API key; without one the API
+  # answers 401 and AuthenticationError is raised. That includes lookup_bic,
+  # which used to work without a key. The free key from
+  # https://ibanchecker.cash/api-docs covers validate only, 100 requests a
+  # month. validate_bulk and lookup_bic need the Basic plan or above, and
+  # extract the Growth plan or above. A key whose email address has a verified
+  # account at https://ibanchecker.cash/dashboard can try the calls its plan
+  # lacks (validate_bulk up to 10 IBANs, extract up to 5,000 characters per
+  # call). A call outside the key's plan gets a 403 with error_code
+  # "PLAN_REQUIRED", raised as APIError; its #response carries required_plan
+  # and upgrade_url.
+  #
+  # country_format works without a key, limited to 100 requests an hour per
+  # IP. That hourly limit applies to country_format only.
   #
   #   client = IbanChecker::Client.new(ENV["IBANCHECKER_API_KEY"])   # or .new("iban_your_key")
   #   result = client.validate("DE89 3704 0044 0532 0130 00")
@@ -46,7 +55,7 @@ module IbanChecker
     # A malformed IBAN is not an error: the result comes back with +valid?+
     # false and an +error+ plus +error_code+ explaining why.
     #
-    # Needs an API key.
+    # Needs an API key; the free key covers it. Counts one request.
     def validate(iban)
       ValidationResult.from_api(request("POST", "/validate", "iban" => iban.to_s))
     end
@@ -54,7 +63,8 @@ module IbanChecker
     # Validate up to 100 IBANs in one request. Results come back in the same
     # order as the input.
     #
-    # Needs an API key.
+    # Needs an API key on the Basic plan or above, or a trial of up to 10 IBANs
+    # per call for a key with a verified account. Counts one request per IBAN.
     def validate_bulk(ibans)
       BatchResult.from_api(
         request("POST", "/validate/bulk", "ibans" => Array(ibans).map(&:to_s))
@@ -64,7 +74,9 @@ module IbanChecker
     # Scan free text (emails, invoices) for IBAN-shaped strings and validate
     # each candidate. Up to 50,000 characters per request.
     #
-    # Needs an API key.
+    # Needs an API key on the Growth plan or above, or a trial of up to 5,000
+    # characters per call for a key with a verified account. Counts one request
+    # per IBAN found, with at least one per call.
     def extract(text)
       BatchResult.from_api(request("POST", "/extract", "text" => text.to_s))
     end
@@ -74,11 +86,19 @@ module IbanChecker
     #
     # Named country_format rather than format because Kernel#format is
     # sprintf, and shadowing it inside this class would be a trap.
+    #
+    # The only call that works without a key, limited to 100 requests an hour
+    # per IP.
     def country_format(country)
       FormatSpec.from_api(request("GET", "/formats/#{escape(country.to_s.downcase)}"))
     end
 
     # Resolve an 8 or 11 character ISO 9362 BIC to a bank record.
+    #
+    # Needs an API key on the Basic plan or above, or a trial for a key with a
+    # verified account. Without a key the API answers 401 and
+    # AuthenticationError is raised; it no longer works keyless. Counts one
+    # request.
     def lookup_bic(bic)
       BankRecord.from_api(request("GET", "/swift/#{escape(bic.to_s.upcase)}"))
     end

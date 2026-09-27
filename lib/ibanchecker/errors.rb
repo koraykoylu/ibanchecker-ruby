@@ -24,20 +24,32 @@ module IbanChecker
     end
   end
 
-  # The request was malformed (HTTP 400).
+  # The request was malformed, or a trial call was over the trial size
+  # ("TOO_MANY_IBANS" for bulk, "TEXT_TOO_LONG" for extraction) (HTTP 400).
   class BadRequestError < Error; end
 
   # The API key is missing, invalid or inactive (HTTP 401).
+  #
+  # Every call except Client#country_format needs a key, so a call without
+  # one, a Client#lookup_bic included, gets this from the API's 401.
   class AuthenticationError < Error; end
 
   # The requested country code or BIC was not found (HTTP 404).
   class NotFoundError < Error; end
 
-  # The key's monthly quota ("QUOTA_EXCEEDED") or the hourly limit for requests
-  # without a key ("RATE_LIMIT_EXCEEDED") was exceeded (HTTP 429).
+  # The key's monthly quota was exceeded, or the call costs more than the
+  # requests left this month ("QUOTA_EXCEEDED"), or Client#country_format
+  # without a key went over 100 requests an hour ("RATE_LIMIT_EXCEEDED")
+  # (HTTP 429). Bulk validation counts one request per IBAN and extraction one
+  # per IBAN found.
   class RateLimitError < Error; end
 
-  # An unexpected server-side error, or a body that could not be read.
+  # Any error status without a class of its own, or a body that could not be
+  # read.
+  #
+  # This includes HTTP 403 for a call outside the key's plan: error_code is
+  # "PLAN_REQUIRED" and #response carries "required_plan" ("basic" or
+  # "growth") and "upgrade_url".
   class APIError < Error; end
 
   # The request never reached the API: DNS, TLS, connection or timeout.
