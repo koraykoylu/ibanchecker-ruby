@@ -20,10 +20,12 @@ Requires Ruby 2.7 or newer. There are no runtime dependencies: the client is bui
 
 ## Quick start
 
+Validation, bulk validation and extraction need an API key. A free key covers 100 requests a month and arrives by email in seconds from [ibanchecker.cash/api-docs](https://ibanchecker.cash/api-docs).
+
 ```ruby
 require "ibanchecker"
 
-client = IbanChecker::Client.new   # no API key needed for light use (100 requests/hour per IP)
+client = IbanChecker::Client.new(ENV["IBANCHECKER_API_KEY"])   # or .new("iban_your_api_key")
 
 result = client.validate("DE89 3704 0044 0532 0130 00")
 
@@ -39,22 +41,26 @@ end
 
 ## Authentication
 
-An API key is optional. Without one, requests are limited to 100 per hour per IP. With a key, requests count against your plan quota. Get a free key at [ibanchecker.cash/api-docs](https://ibanchecker.cash/api-docs).
+`validate`, `validate_bulk` and `extract` need an API key. Without one the API answers HTTP 401 and the client raises `IbanChecker::AuthenticationError`. The free key from [ibanchecker.cash/api-docs](https://ibanchecker.cash/api-docs) covers 100 requests a month; paid plans are at [ibanchecker.cash/pricing](https://ibanchecker.cash/pricing).
+
+`country_format` and `lookup_bic` work without a key, limited to 100 requests an hour per IP.
 
 ```ruby
 client = IbanChecker::Client.new("iban_your_api_key")
 client = IbanChecker::Client.new(ENV["IBANCHECKER_API_KEY"])
+
+lookups = IbanChecker::Client.new   # country_format and lookup_bic only
 ```
 
 ## Methods
 
-| Method | Description |
-| --- | --- |
-| `validate(iban)` | Validate a single IBAN. Returns a `ValidationResult`. |
-| `validate_bulk(ibans)` | Validate up to 100 IBANs. Returns a `BatchResult`. |
-| `extract(text)` | Find and validate IBANs in free text (up to 50,000 chars). Returns a `BatchResult`. |
-| `country_format(country)` | IBAN format spec for an ISO country code. Returns a `FormatSpec`. |
-| `lookup_bic(bic)` | Resolve an 8 or 11 character BIC. Returns a `BankRecord`. |
+| Method | API key | Description |
+| --- | --- | --- |
+| `validate(iban)` | required | Validate a single IBAN. Returns a `ValidationResult`. |
+| `validate_bulk(ibans)` | required | Validate up to 100 IBANs. Returns a `BatchResult`. |
+| `extract(text)` | required | Find and validate IBANs in free text (up to 50,000 chars). Returns a `BatchResult`. |
+| `country_format(country)` | optional | IBAN format spec for an ISO country code. Returns a `FormatSpec`. |
+| `lookup_bic(bic)` | optional | Resolve an 8 or 11 character BIC. Returns a `BankRecord`. |
 
 `country_format` is the one name that differs from the other ibanchecker clients, where it is `getFormat`. `format` is `Kernel#format`, Ruby's `sprintf`, so a method by that name on this class would shadow it for every line inside the class.
 
@@ -138,7 +144,7 @@ end
 | `IbanChecker::BadRequestError` | HTTP 400, the request was malformed |
 | `IbanChecker::AuthenticationError` | HTTP 401, the API key is missing, invalid or inactive |
 | `IbanChecker::NotFoundError` | HTTP 404, no such country code or BIC |
-| `IbanChecker::RateLimitError` | HTTP 429, hourly limit or monthly quota exceeded |
+| `IbanChecker::RateLimitError` | HTTP 429, the key's monthly quota (`error_code` `"QUOTA_EXCEEDED"`) or the hourly limit for requests without a key (`"RATE_LIMIT_EXCEEDED"`) was exceeded |
 | `IbanChecker::APIError` | any other error status, or a body that could not be read |
 | `IbanChecker::TransportError` | the request never reached the API: DNS, TLS, connection, timeout |
 
@@ -147,7 +153,7 @@ All of them inherit from `IbanChecker::Error`, so one `rescue IbanChecker::Error
 ## Timeouts
 
 ```ruby
-client = IbanChecker::Client.new(timeout: 3.0)   # seconds, applied to connect and read
+client = IbanChecker::Client.new(ENV["IBANCHECKER_API_KEY"], timeout: 3.0)   # seconds, applied to connect and read
 ```
 
 ## Using your own HTTP stack

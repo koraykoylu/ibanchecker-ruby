@@ -9,10 +9,13 @@ module IbanChecker
   # extract IBANs from free text, look up country format specifications and
   # resolve SWIFT/BIC codes.
   #
-  # An API key is optional. Without one, requests are limited to 100 per hour
-  # per IP. Get a free key at https://ibanchecker.cash/api-docs.
+  # validate, validate_bulk and extract need an API key; without one the API
+  # answers 401 and AuthenticationError is raised. The free key from
+  # https://ibanchecker.cash/api-docs covers 100 requests a month.
+  # country_format and lookup_bic work without a key, limited to 100 requests
+  # an hour per IP.
   #
-  #   client = IbanChecker::Client.new          # or .new("iban_your_key")
+  #   client = IbanChecker::Client.new(ENV["IBANCHECKER_API_KEY"])   # or .new("iban_your_key")
   #   result = client.validate("DE89 3704 0044 0532 0130 00")
   #   puts "#{result.bank_name} #{result.bic}" if result.valid?
   class Client
@@ -42,12 +45,16 @@ module IbanChecker
     #
     # A malformed IBAN is not an error: the result comes back with +valid?+
     # false and an +error+ plus +error_code+ explaining why.
+    #
+    # Needs an API key.
     def validate(iban)
       ValidationResult.from_api(request("POST", "/validate", "iban" => iban.to_s))
     end
 
     # Validate up to 100 IBANs in one request. Results come back in the same
     # order as the input.
+    #
+    # Needs an API key.
     def validate_bulk(ibans)
       BatchResult.from_api(
         request("POST", "/validate/bulk", "ibans" => Array(ibans).map(&:to_s))
@@ -56,6 +63,8 @@ module IbanChecker
 
     # Scan free text (emails, invoices) for IBAN-shaped strings and validate
     # each candidate. Up to 50,000 characters per request.
+    #
+    # Needs an API key.
     def extract(text)
       BatchResult.from_api(request("POST", "/extract", "text" => text.to_s))
     end

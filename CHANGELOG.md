@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.1
+
+Documentation only; the client's behaviour is unchanged.
+
+- The API now requires a key for `validate`, `validate_bulk` and `extract`:
+  without one it answers 401 and the client raises `AuthenticationError`. The
+  free key covers 100 requests a month
+- `country_format` and `lookup_bic` still work without a key, limited to 100
+  requests an hour per IP
+- README, examples and doc comments construct the client with a key and say
+  which calls need it
+
 ## 0.1.0
 
 First release.

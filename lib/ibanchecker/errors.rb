@@ -33,7 +33,8 @@ module IbanChecker
   # The requested country code or BIC was not found (HTTP 404).
   class NotFoundError < Error; end
 
-  # The hourly rate limit or the monthly quota was exceeded (HTTP 429).
+  # The key's monthly quota ("QUOTA_EXCEEDED") or the hourly limit for requests
+  # without a key ("RATE_LIMIT_EXCEEDED") was exceeded (HTTP 429).
   class RateLimitError < Error; end
 
   # An unexpected server-side error, or a body that could not be read.

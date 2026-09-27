@@ -10,7 +10,7 @@ require_relative "ibanchecker/client"
 #
 #   require "ibanchecker"
 #
-#   client = IbanChecker::Client.new
+#   client = IbanChecker::Client.new(ENV["IBANCHECKER_API_KEY"])
 #   result = client.validate("DE89370400440532013000")
 #   result.valid?      # => true
 #   result.bank_name   # => "Commerzbank AG Cologne"
