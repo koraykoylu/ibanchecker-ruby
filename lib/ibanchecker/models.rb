@@ -27,6 +27,41 @@ module IbanChecker
     end
   end
 
+  # The bank's logo as the ibanchecker.cash result card shows it. The logos are
+  # the banks' trademarks, provided to identify the bank.
+  #
+  # +on_light+ is drawn on a light background and +on_dark+ on a dark one (the
+  # same URL when one file reads on both). When +dark_needs_light_backing+ is
+  # true, +on_dark+ has no dark variant and should sit on a light chip.
+  # +format+ is "svg", "png" or "webp".
+  class BankLogo
+    attr_reader :on_light, :on_dark, :dark_needs_light_backing, :format
+
+    # The untouched logo object from the API response.
+    attr_reader :raw
+
+    def initialize(on_light:, on_dark:, dark_needs_light_backing:, format:, raw: {})
+      @on_light = on_light
+      @on_dark = on_dark
+      @dark_needs_light_backing = dark_needs_light_backing
+      @format = format
+      @raw = raw
+    end
+
+    # nil when the API holds no verified logo for the bank.
+    def self.from_api(data)
+      return nil unless data.is_a?(Hash) && !data.empty?
+
+      new(
+        on_light: data["on_light"],
+        on_dark: data["on_dark"],
+        dark_needs_light_backing: data["dark_needs_light_backing"] == true,
+        format: data["format"],
+        raw: data
+      )
+    end
+  end
+
   # The result of validating one IBAN.
   #
   # +valid?+ is the primary flag. When it is false only +iban+, +formatted+,
@@ -38,7 +73,7 @@ module IbanChecker
   class ValidationResult
     ATTRIBUTES = %i[
       iban formatted check_digits bban country country_name
-      bank_name bank_type bic bank_city bank_code branch_code account_number
+      bank_name bank_type bic bank_city bank_logo bank_code branch_code account_number
       national_check_valid currency currency_name transfer_type sepa flag
       error error_code
     ].freeze
@@ -78,6 +113,7 @@ module IbanChecker
         bank_type: data["bank_type"],
         bic: data["bic"],
         bank_city: data["bank_city"],
+        bank_logo: BankLogo.from_api(data["bank_logo"]),
         bank_code: data["bank_code"],
         branch_code: data["branch_code"],
         account_number: data["account_number"],
@@ -185,7 +221,7 @@ module IbanChecker
   class BankRecord
     ATTRIBUTES = %i[
       bic bic8 bank_code country_code location_code branch_code
-      bank_name city country_name sepa type status
+      bank_name bank_logo city country_name sepa type status
     ].freeze
 
     attr_reader(*ATTRIBUTES)
@@ -207,6 +243,7 @@ module IbanChecker
         location_code: data["location_code"],
         branch_code: data["branch_code"],
         bank_name: data["bank_name"],
+        bank_logo: BankLogo.from_api(data["bank_logo"]),
         city: data["city"],
         country_name: data["country_name"],
         sepa: data["sepa"],

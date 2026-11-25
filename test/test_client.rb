@@ -175,6 +175,26 @@ class TestClient < Minitest::Test
     assert_nil transport.last[:body]
   end
 
+  def test_bank_logo_is_mapped_and_nil_when_absent
+    logo = {
+      "on_light" => "https://logos.ibanchecker.cash/logos/CFTEMTM1-site.svg",
+      "on_dark" => "https://logos.ibanchecker.cash/logos/CFTEMTM1-site-w.svg",
+      "dark_needs_light_backing" => false,
+      "format" => "svg"
+    }
+    result = client(FakeTransport.new(200, { "valid" => true, "iban" => "X", "bank_logo" => logo })).validate("X")
+    assert_instance_of IbanChecker::BankLogo, result.bank_logo
+    assert_equal logo["on_dark"], result.bank_logo.on_dark
+    assert_equal false, result.bank_logo.dark_needs_light_backing
+    assert_equal "svg", result.bank_logo.format
+
+    bank = client(FakeTransport.new(200, { "bic" => "CFTEMTM1", "bank_logo" => logo })).lookup_bic("CFTEMTM1")
+    assert_equal logo["on_light"], bank.bank_logo.on_light
+
+    assert_nil client(FakeTransport.new(200, { "valid" => true, "iban" => "X", "bank_logo" => nil })).validate("X").bank_logo
+    assert_nil client(FakeTransport.new(200, { "valid" => true, "iban" => "X" })).validate("X").bank_logo
+  end
+
   def test_lookup_bic_uppercases_the_path
     transport = FakeTransport.new(200, {
                                     "bic" => "DEUTDEFFXXX",

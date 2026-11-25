@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- `bank_logo` on `ValidationResult` and `BankRecord`, as a new `IbanChecker::BankLogo`: the bank's logo, from the API's new `bank_logo` field on validation, bulk validation, extraction and BIC lookup. It holds a file for light and for dark backgrounds, whether the dark file needs a light backing, and the format; it is empty when no verified logo is held for the bank
+
 ## 0.1.2
 
 Documentation only.

@@ -147,6 +147,16 @@ end
 
 `valid?` is the only predicate method on the models, because it is the only field that is always a boolean. `national_check_valid` and `sepa` can each be `nil`, and `nil` there means "not known for this IBAN" rather than "no", so they are plain readers and you compare them explicitly.
 
+### Bank logo
+
+`result.bank_logo` and `bank.bank_logo` are an `IbanChecker::BankLogo`, or `nil` when no verified logo is held for the bank. It carries the mark the ibanchecker.cash result card shows: a file for light backgrounds, a file for dark backgrounds (the same URL when one file reads on both), whether the dark file needs a light chip behind it, and the format (`svg`, `png` or `webp`). Every logo is checked by hand against the bank's current mark, so not every bank has one yet; the field is empty then. The logos are the banks' trademarks, provided to identify the bank.
+
+```ruby
+if (logo = result.bank_logo)
+  [logo.on_light, logo.on_dark, logo.dark_needs_light_backing, logo.format]
+end
+```
+
 ## Error handling
 
 A malformed IBAN is **not** an error: `validate` returns a `ValidationResult` with `valid?` false. Errors are raised only for transport, authentication, quota and server-side problems.
